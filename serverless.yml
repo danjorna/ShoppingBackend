@@ -1,0 +1,108 @@
+service: dynamodb-crud-api
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:custom.shoppingTableName}
+
+custom:
+  shoppingTableName: items-table-${self:provider.stage}
+
+plugins:
+  - serverless-iam-roles-per-function
+
+functions:
+  getitem:
+    handler: api.getItem
+    name: get-item
+    memorySize: 128 # mb
+    timeout: 1
+    events:
+      - http:
+          path: item/{shop}/{item}
+          method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:GetItem"
+        Resource: !GetAtt ItemsTable.Arn
+  createitem:
+    handler: api.createItem
+    name: create-item
+    memorySize: 128 # mb
+    timeout: 1
+    events:
+      - http:
+          path: item
+          method: POST
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:PutItem"
+        Resource: !GetAtt ItemsTable.Arn
+  updateItem:
+    handler: api.updateItem
+    name: update-item
+    memorySize: 128 # mb
+    timeout: 1
+    events:
+      - http:
+          path: item/{shop}/{item}
+          method: PUT
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:UpdateItem"
+        Resource: !GetAtt ItemsTable.Arn
+  deleteItem:
+    handler: api.deleteItem
+    name: delete-item
+    memorySize: 128 # mb
+    timeout: 1
+    events:
+      - http:
+          path: item/{shop}/{item}
+          method: DELETE
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:DeleteItem"
+        Resource: !GetAtt ItemsTable.Arn
+  getAllItems:
+    handler: api.getAllItems
+    name: get-all-items
+    memorySize: 128 # mb
+    timeout: 1
+    events:
+      - http:
+          path: items
+          method: GET
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - "dynamodb:Scan"
+        Resource: !GetAtt ItemsTable.Arn
+
+resources:
+  Resources:
+    ItemsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.shoppingTableName}
+        AttributeDefinitions:
+          - AttributeName: shop
+            AttributeType: S
+          - AttributeName: item
+            AttributeType: S
+        KeySchema:
+          - AttributeName: shop
+            KeyType: HASH
+          - AttributeName: item
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
